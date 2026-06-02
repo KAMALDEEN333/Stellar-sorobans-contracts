@@ -1,215 +1,360 @@
+🧠 Stellar Insured
+Decentralized Insurance Infrastructure on Stellar Soroban
 
+Stellar Insured is a suite of Soroban smart contracts that powers decentralized insurance products on the Stellar network.
 
-(Stellar Soroban Contracts – Insurance Logic)
+The protocol enables transparent policy issuance, deterministic claims processing, decentralized risk pools, DAO governance, and on-chain slashing mechanisms. All critical insurance logic is executed on-chain, ensuring security, transparency, and auditability.
 
-Stellar Insured 🧠 — Soroban Smart Contracts
+The platform is designed for:
 
-This repository contains the core insurance smart contracts for Stellar Insured, written using Stellar Soroban. These contracts power policy issuance, claims processing, settlements, risk pools, and DAO governance in a fully decentralized and trustless manner.
+Policyholders
+Liquidity providers
+DAO participants
+Auditors
+Developers
+Insurance protocol operators
+✨ Features
+Insurance policy lifecycle management
+Multi-stage claims processing workflow
+Decentralized liquidity risk pools
+Automated claims settlement
+DAO-based governance
+On-chain slashing mechanism
+Configurable voting thresholds and quorum requirements
+Progressive penalties for malicious actors
+Fully auditable smart contract execution
+Soroban-native architecture
+🏗 Architecture
 
-They are intended for policyholders, DAO members, auditors, and developers who require transparent, immutable, and verifiable insurance logic deployed on the Stellar blockchain.
+The protocol consists of five core contracts:
 
-Architecture
+contracts/
+├── policy/
+├── claims/
+├── risk_pool/
+├── governance/
+├── slashing/
+└── lib.rs
+📜 Contract Overview
 1. Policy Contract
-Manages insurance policy issuance, renewal, and lifecycle.
 
-Issue Policy: Create new insurance policies with coverage amounts and premiums
-Renew Policy: Extend policy duration before expiry
-Cancel Policy: Policyholder can cancel active policies
-Expire Policy: Mark policies as expired
-Key Functions:
+Manages insurance policy issuance, renewal, cancellation, and expiration.
 
-initialize(admin, risk_pool) - Initialize contract
-issue_policy(holder, coverage_amount, premium_amount, duration_days, policy_type) - Issue new policy
-get_policy(policy_id) - Retrieve policy details
-renew_policy(policy_id, duration_days) - Renew existing policy
-cancel_policy(policy_id) - Cancel policy
-expire_policy(policy_id) - Mark as expired
-get_stats() - Get contract statistics
+Capabilities
+Issue policies
+Renew active policies
+Cancel policies
+Manage policy lifecycle
+Retrieve policy information
+Core Functions
+initialize(admin, risk_pool)
+
+issue_policy(
+    holder,
+    coverage_amount,
+    premium_amount,
+    duration_days,
+    policy_type
+)
+
+get_policy(policy_id)
+
+renew_policy(policy_id, duration_days)
+
+cancel_policy(policy_id)
+
+expire_policy(policy_id)
+
+get_stats()
 2. Claims Contract
-Processes insurance claims with deterministic multi-stage approval workflow.
 
-Submit Claim: Policyholders submit claims with evidence (Submitted status)
-Start Review: Admin moves claim to review stage (UnderReview status)
-Approve/Reject Claim: Admin approves valid claims or rejects invalid ones (Approved/Rejected status)
-Settle Claim: Release funds to claimant for approved claims only (Settled status)
-Multi-Stage Workflow:
+Processes insurance claims using a deterministic multi-stage approval workflow.
 
-Submitted → UnderReview → Approved/Rejected → Settled (Approved only)
-State Transition Rules:
+Claim Lifecycle
+Submitted
+    ↓
+UnderReview
+    ↓
+Approved / Rejected
+    ↓
+Settled (Approved only)
+Workflow Rules
+Only administrators can transition claim states.
+Claims cannot be settled before approval.
+Invalid state transitions are prevented.
+Core Functions
+initialize(admin, policy_contract, risk_pool)
 
-Only admin can transition claims between states
-Claims can only be settled if approved (prevents premature settlement)
-Full state validation prevents invalid transitions
-Key Functions:
+submit_claim(policy_id, amount)
 
-initialize(admin, policy_contract, risk_pool) - Initialize contract
-submit_claim(policy_id, amount) - Submit new claim (sets status to Submitted)
-start_review(claim_id) - Admin moves claim to UnderReview status
-get_claim(claim_id) - Retrieve claim details with status
-approve_claim(claim_id) - Admin approves UnderReview claims (sets to Approved)
-reject_claim(claim_id) - Admin rejects UnderReview claims (sets to Rejected)
-settle_claim(claim_id) - Settle approved claims only, integrates with risk pool
-get_stats() - Get claims statistics
+start_review(claim_id)
+
+approve_claim(claim_id)
+
+reject_claim(claim_id)
+
+settle_claim(claim_id)
+
+get_claim(claim_id)
+
+get_stats()
 3. Risk Pool Contract
-Manages liquidity pool for claims settlement.
 
-Deposit Liquidity: Providers deposit XLM to earn rewards
-Withdraw Liquidity: Withdraw staked amounts
-Reserve Liquidity: Lock funds for pending claims
-Release Liquidity: Return reserved funds after settlement
-Key Functions:
+Provides liquidity used to settle approved insurance claims.
 
-initialize(admin, xlm_token, min_provider_stake) - Initialize pool
-deposit_liquidity(provider, amount) - Deposit into pool
-withdraw_liquidity(provider, amount) - Withdraw from pool
-payout_claim(recipient, amount) - Pay out approved claims (admin only)
-get_pool_stats() - Pool statistics
-get_provider_info(provider) - Provider stake info
-5. Slashing Contract
-Professional on-chain slashing mechanism to penalize malicious or negligent actors.
+Capabilities
+Accept liquidity deposits
+Handle withdrawals
+Reserve funds for claims
+Execute claim payouts
+Track provider positions
+Core Functions
+initialize(
+    admin,
+    xlm_token,
+    min_provider_stake
+)
 
-Slashable Roles: Oracle providers, claim submitters, governance participants, risk pool providers
-Configurable Penalties: DAO-controlled penalty percentages and multipliers
-Fund Redirection: Slashed funds redirected to risk pool, treasury, or compensation fund
-Repeat Offender System: Progressive penalties for multiple violations
-Cooldown Periods: Time-based protection against excessive slashing
-Key Functions:
+deposit_liquidity(provider, amount)
 
-initialize(admin, governance_contract, risk_pool_contract) - Initialize with governance integration
-configure_penalty_parameters(role, reason, percentage, destination, multiplier, cooldown) - Set penalty rules
-slash_funds(target, role, reason, amount) - Execute slashing with validation
-add_slashable_role(role) / remove_slashable_role(role) - Manage slashable roles
-get_slashing_history(target, role) - View violation history
-get_violation_count(target, role) - Check repeat offenses
-can_be_slashed(target, role) - Verify slashing eligibility
-pause() / unpause() - Emergency controls
+withdraw_liquidity(provider, amount)
+
+payout_claim(recipient, amount)
+
+get_pool_stats()
+
+get_provider_info(provider)
 4. Governance Contract
-Professional DAO proposal system enabling decentralized protocol decisions.
 
-Proposal Creation: Create detailed proposals with title, description, and execution data
-Voting Period Enforcement: Strict time-based voting with configurable periods
-Proposal Storage Schema: Efficient storage using Soroban-compatible data structures
-Read-only Queries: Comprehensive query functions for proposal data and statistics
-Key Functions:
+DAO governance system used to manage protocol decisions.
 
-initialize(admin, token_contract, voting_period_days, min_voting_percentage, min_quorum_percentage, slashing_contract) - Initialize with quorum requirements
-create_proposal(title, description, execution_data, threshold_percentage) - Create detailed proposal
-get_proposal(proposal_id) - Retrieve full proposal details
-vote(proposal_id, vote_weight, is_yes) - Cast vote with duplicate prevention
-finalize_proposal(proposal_id) - Finalize after voting period with quorum/threshold checks
-execute_proposal(proposal_id) - Execute passed proposals
-create_slashing_proposal(target, role, reason, amount, evidence, threshold) - Create slashing proposals
-execute_slashing_proposal(proposal_id) - Execute approved slashing actions
-get_active_proposals() - Query all active proposals
-get_proposal_stats(proposal_id) - Get voting statistics
-get_all_proposals() - List all proposals
-get_vote_record(proposal_id, voter) - Check individual voting records
-✨ Contract Features
+Governance Features
+Proposal creation
+Community voting
+Quorum enforcement
+Proposal execution
+Slashing proposal management
+Proposal analytics
+Core Functions
+initialize(
+    admin,
+    token_contract,
+    voting_period_days,
+    min_voting_percentage,
+    min_quorum_percentage,
+    slashing_contract
+)
 
-Insurance policy creation and lifecycle management
+create_proposal(
+    title,
+    description,
+    execution_data,
+    threshold_percentage
+)
 
-Automated claim validation and settlement
+vote(
+    proposal_id,
+    vote_weight,
+    is_yes
+)
 
-Decentralized risk pool accounting
+finalize_proposal(proposal_id)
 
-Professional DAO governance with quorum and threshold requirements
+execute_proposal(proposal_id)
 
-On-chain slashing mechanism with configurable penalties
+create_slashing_proposal(
+    target,
+    role,
+    reason,
+    amount,
+    evidence,
+    threshold
+)
 
-Deterministic and secure execution
+execute_slashing_proposal(proposal_id)
+Query Functions
+get_proposal(proposal_id)
 
-Upgrade-ready contract architecture
+get_active_proposals()
 
-Comprehensive voting period enforcement
+get_all_proposals()
 
-Efficient proposal storage and querying system
+get_vote_record(
+    proposal_id,
+    voter
+)
 
-Progressive penalty system for repeat offenders
+get_proposal_stats(proposal_id)
+5. Slashing Contract
 
-Fund redirection to risk pool, treasury, or compensation
+Provides a governance-controlled mechanism for penalizing malicious or negligent actors.
 
-🧑‍💻 Tech Stack
+Supported Roles
+Oracle providers
+Claim submitters
+Governance participants
+Liquidity providers
+Features
+Configurable penalties
+Progressive punishment system
+Repeat offender tracking
+Cooldown periods
+Treasury or pool fund redirection
+Emergency pause controls
+Core Functions
+initialize(
+    admin,
+    governance_contract,
+    risk_pool_contract
+)
 
-Blockchain: Stellar
+configure_penalty_parameters(
+    role,
+    reason,
+    percentage,
+    destination,
+    multiplier,
+    cooldown
+)
 
-Smart Contracts: Soroban
+slash_funds(
+    target,
+    role,
+    reason,
+    amount
+)
 
-Language: Rust
+add_slashable_role(role)
 
-Testing: Soroban test framework
+remove_slashable_role(role)
 
-📁 Project Structure contracts/ ├── policy/ ├── claims/ ├── risk_pool/ ├── governance/ └── lib.rs
+get_slashing_history(
+    target,
+    role
+)
 
-📦 Setup & Development Prerequisites
+get_violation_count(
+    target,
+    role
+)
 
+can_be_slashed(
+    target,
+    role
+)
+
+pause()
+
+unpause()
+🧑‍💻 Technology Stack
+Layer	Technology
+Blockchain	Stellar
+Smart Contracts	Soroban
+Language	Rust
+Testing	Soroban Test Framework
+Runtime	Soroban VM
+📦 Getting Started
+Prerequisites
 Rust (latest stable)
-
 Stellar CLI
-
 Soroban SDK
+Install Dependencies
+rustup update
+cargo install stellar-cli
+🔨 Build Contracts
 
-Build Contracts cargo build --target wasm32-unknown-unknown --release
-
-Run Tests cargo test
-
-🌐 Network Configuration
-
-Network: Stellar Testnet
-
-Execution: Soroban VM
-
-Wallets: Non-custodial Stellar wallets
-
-🔐 Security Considerations
-
-Deterministic execution
-
-Multi-stage state transition validation preventing invalid claim flows
-
-Admin-only authorization for all sensitive claim operations
-
-Settlement prevention for non-approved claims
-
-Explicit authorization checks
-
-Auditable contract logic
-
-Minimal trusted off-chain assumptions
-
-📚 Resources
-
-Soroban Docs: https://soroban.stellar.org/docs
-
-Stellar Developers: https://developers.stellar.org
-
-Rust Docs: https://doc.rust-lang.org
-
-Deployment
 Build all contracts:
-cd contracts/policy && cargo build --release
-cd contracts/claims && cargo build --release
-cd contracts/risk_pool && cargo build --release
-cd contracts/governance && cargo build --release
-Deploy to Stellar network using Soroban CLI
 
-Initialize each contract with proper parameters
+cd contracts/policy
+cargo build --release
 
-Local sandbox orchestration:
+cd ../claims
+cargo build --release
 
-`stellar-insured-contracts/scripts/orchestrate-soroban.sh` deploys the Soroban stack in dependency order, initializes governance defaults, and primes the pool for local integration runs. See `stellar-insured-contracts/docs/soroban-orchestrator.md` for usage and override examples.
+cd ../risk_pool
+cargo build --release
 
-Security Considerations
-Authorization: All sensitive operations require authentication
-State Validation: Comprehensive checks on contract state transitions
-Error Handling: Descriptive error codes for debugging
-Event Logging: All important actions emit events
-Rate Limiting: Consider implementing rate limits for production
+cd ../governance
+cargo build --release
+
+cd ../slashing
+cargo build --release
+
+Or build from the workspace root:
+
+cargo build --release
+🧪 Run Tests
+cargo test
+🌐 Network Configuration
+Component	Value
+Network	Stellar Testnet
+Execution	Soroban VM
+Wallets	Non-Custodial Stellar Wallets
+🚀 Deployment
+Deploy Contracts
+
+Deploy each compiled WASM contract using Stellar CLI:
+
+stellar contract deploy ...
+Initialize Contracts
+
+Initialize contracts in dependency order:
+
+Risk Pool
+Policy
+Claims
+Slashing
+Governance
+Local Sandbox Orchestration
+
+The repository includes a local deployment orchestrator:
+
+stellar-insured-contracts/scripts/orchestrate-soroban.sh
+
+This script:
+
+Deploys contracts in dependency order
+Configures governance defaults
+Initializes the risk pool
+Prepares the local development environment
+
+Additional configuration examples are available in:
+
+docs/soroban-orchestrator.md
+🔐 Security
+
+Security is a first-class concern throughout the protocol.
+
+Security Controls
+Deterministic execution
+Explicit authorization checks
+Multi-stage claim validation
+Settlement restrictions
+Comprehensive state validation
+Event-based audit trails
+Governance-controlled slashing
+Minimal trusted off-chain assumptions
+Production Recommendations
+Independent security audits
+Rate limiting
+Monitoring and alerting
+Multi-signature governance controls
+📚 Resources
+Stellar Documentation
+Soroban Documentation
+Rust Documentation
 🤝 Contributing
 
+We welcome contributions from the Stellar ecosystem.
+
+Contribution Process
 Fork the repository
-
-Create a contract-specific branch
-
-Add tests for all logic changes
-
+Create a feature branch
+Add tests for all changes
+Follow Rust and Soroban best practices
 Submit a Pull Request
+📄 License
+
+MIT License
+
+Built with Rust, Soroban, and Stellar to create transparent, decentralized insurance infrastructure. 🚀
