@@ -2,19 +2,136 @@
 pragma solidity ^0.8.20;
 
 /// @title FallbackHandler
-/// @notice Handles plain ether transfers and unknown function calls gracefully.
+/// @author GreenCrestz Labs
+/// @notice Handles ETH transfers and unknown function calls safely while providing detailed logging.
+/// @dev Useful for proxy patterns, payment receivers, and debugging unexpected contract interactions.
 contract FallbackHandler {
-    event EtherReceived(address indexed sender, uint256 amount);
-    event UnknownCall(bytes4 indexed selector);
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
 
-    /// @notice Triggered when the contract receives plain ether with no calldata.
-    receive() external payable {
-        emit EtherReceived(msg.sender, msg.value);
+    error ZeroValueTransfer();
+    error Unauthorized();
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when ETH is received without calldata.
+    event EtherReceived(
+        address indexed sender,
+        uint256 amount,
+        uint256 timestamp
+    );
+
+    /// @notice Emitted when an unknown function selector is called.
+    event UnknownCall(
+        address indexed caller,
+        bytes4 indexed selector,
+        uint256 value,
+        bytes data
+    );
+
+    /// @notice Emitted when ownership changes.
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
+
+    /*//////////////////////////////////////////////////////////////
+                                STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    address public owner;
+
+    /*//////////////////////////////////////////////////////////////
+                              MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert Unauthorized();
+        _;
     }
 
-    /// @notice Triggered when the contract is called with data that does not
-    ///         match any function selector.
+    /*//////////////////////////////////////////////////////////////
+                             CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor() {
+        owner = msg.sender;
+
+        emit OwnershipTransferred(
+            address(0),
+            msg.sender
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                             RECEIVE LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Handles plain ETH transfers with no calldata.
+    receive() external payable {
+        if (msg.value == 0) revert ZeroValueTransfer();
+
+        emit EtherReceived(
+            msg.sender,
+            msg.value,
+            block.timestamp
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                             FALLBACK LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Handles calls to non-existent functions.
+    /// @dev Logs selector, caller, attached value, and calldata.
     fallback() external payable {
-        emit UnknownCall(msg.sig);
+        emit UnknownCall(
+            msg.sender,
+            msg.sig,
+            msg.value,
+            msg.data
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Returns the current ETH balance of the contract.
+    function getBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                           OWNER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Withdraws the entire contract balance.
+    function withdraw() external onlyOwner {
+        uint256 balance = address(this).balance;
+
+        (bool success, ) = payable(owner).call{value: balance}("");
+        require(success, "Transfer failed");
+    }
+
+    /// @notice Transfers ownership to a new address.
+    function transferOwnership(address newOwner)
+        external
+        onlyOwner
+    {
+        require(
+            newOwner != address(0),
+            "Invalid owner"
+        );
+
+        emit OwnershipTransferred(
+            owner,
+            newOwner
+        );
+
+        owner = newOwner;
     }
 }
